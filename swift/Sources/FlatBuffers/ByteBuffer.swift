@@ -220,7 +220,7 @@ public struct ByteBuffer {
   mutating func push<T: Scalar>(elements: [T]) {
     let size = elements.count &* MemoryLayout<T>.size
     ensureSpace(size: size)
-    elements.reversed().forEach { s in
+    for s in elements.reversed() {
       push(value: s, len: MemoryLayout.size(ofValue: s))
     }
   }
