@@ -28,8 +28,8 @@ public struct ByteBuffer {
 
   /// Storage is a container that would hold the memory pointer to solve the issue of
   /// deallocating the memory that was held by (memory: UnsafeMutableRawPointer)
-  @usableFromInline
-  final class Storage {
+  //@usableFromInline
+  final public class Storage {
     // This storage doesn't own the memory, therefore, we won't deallocate on deinit.
     private let unowned: Bool
     /// pointer to the start of the buffer object in memory
@@ -100,7 +100,7 @@ public struct ByteBuffer {
     }
   }
 
-  @usableFromInline var _storage: Storage
+  /*@usableFromInline*/ public var _storage: Storage
 
   /// The size of the elements written to the buffer + their paddings
   private var _writerSize: Int = 0
