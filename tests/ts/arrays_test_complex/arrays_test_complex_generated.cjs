@@ -18,6 +18,10 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
@@ -27,10 +31,15 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var example_exports = {};
 __export(example_exports, {
   ArrayStruct: () => ArrayStruct,
+  ArrayStructT: () => ArrayStructT,
   ArrayTable: () => ArrayTable,
+  ArrayTableT: () => ArrayTableT,
   InnerStruct: () => InnerStruct,
+  InnerStructT: () => InnerStructT,
   NestedStruct: () => NestedStruct,
+  NestedStructT: () => NestedStructT,
   OuterStruct: () => OuterStruct,
+  OuterStructT: () => OuterStructT,
   TestEnum: () => TestEnum
 });
 module.exports = __toCommonJS(example_exports);
@@ -378,7 +387,7 @@ var ArrayStructT = class {
 
 // arrays_test_complex/my-game/example/array-table.js
 var flatbuffers = __toESM(require("flatbuffers"), 1);
-var ArrayTable = class {
+var ArrayTable = class _ArrayTable {
   constructor() {
     this.bb = null;
     this.bb_pos = 0;
@@ -389,11 +398,11 @@ var ArrayTable = class {
     return this;
   }
   static getRootAsArrayTable(bb, obj) {
-    return (obj || new ArrayTable()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    return (obj || new _ArrayTable()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
   }
   static getSizePrefixedRootAsArrayTable(bb, obj) {
     bb.setPosition(bb.position() + flatbuffers.SIZE_PREFIX_LENGTH);
-    return (obj || new ArrayTable()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    return (obj || new _ArrayTable()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
   }
   static bufferHasIdentifier(bb) {
     return bb.__has_identifier("RHUB");

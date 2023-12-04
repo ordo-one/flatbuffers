@@ -67,7 +67,7 @@ namespace Google.FlatBuffers
         }
 
         /// <summary>
-        /// Create a FlatBufferBuilder backed by the pased in ByteBuffer
+        /// Create a FlatBufferBuilder backed by the passed in ByteBuffer
         /// </summary>
         /// <param name="buffer">The ByteBuffer to write to</param>
         public FlatBufferBuilder(ByteBuffer buffer)
@@ -438,7 +438,8 @@ namespace Google.FlatBuffers
             if (off > Offset)
                 throw new ArgumentException();
 
-            off = Offset - off + sizeof(int);
+            if (off != 0)
+                off = Offset - off + sizeof(int);
             PutInt(off);
         }
 
