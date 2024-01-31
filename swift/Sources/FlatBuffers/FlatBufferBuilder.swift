@@ -50,6 +50,9 @@ public struct FlatBufferBuilder {
   private var serializeDefaults: Bool
 
   /// Current alignment for the buffer
+  ///
+  /// ONLY FOR FLATBUFFERS INTERNAL USAGE:
+  /// See https://github.com/apple/swift/issues/61455
   public var _minAlignment: Int = 0 {
     didSet {
       _bb.alignment = _minAlignment
