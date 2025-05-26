@@ -789,6 +789,18 @@ public struct FlatBufferBuilder {
   ///   - def: Default value for that element
   ///   - position: The predefined position of the element
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func add<T: Scalar>(
     element: T,
     def: T,
@@ -808,6 +820,18 @@ public struct FlatBufferBuilder {
   ///   - element: Optional element of type scalar
   ///   - position: The predefined position of the element
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func add<T: Scalar>(element: T?, at position: VOffset) {
     guard let element = element else { return }
     track(offset: push(element: element), at: position)
@@ -821,6 +845,18 @@ public struct FlatBufferBuilder {
   /// - returns: Postion of the Element
   @inline(__always)
   @discardableResult
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func push<T: Scalar>(element: T) -> UOffset {
     let size = MemoryLayout<T>.size
     preAlign(
