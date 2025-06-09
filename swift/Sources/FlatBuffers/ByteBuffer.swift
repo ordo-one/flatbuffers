@@ -122,7 +122,7 @@ public struct ByteBuffer {
   ///   - allowReadingUnalignedBuffers: allow reading from unaligned buffer
   public init(
     bytes: [UInt8],
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     var b = bytes
     _storage = Storage(count: bytes.count, alignment: alignment)
@@ -140,7 +140,7 @@ public struct ByteBuffer {
   ///   - allowReadingUnalignedBuffers: allow reading from unaligned buffer
   public init(
     data: Data,
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     var b = data
     _storage = Storage(count: data.count, alignment: alignment)
@@ -172,7 +172,7 @@ public struct ByteBuffer {
   public init<Bytes: ContiguousBytes>(
     contiguousBytes: Bytes,
     count: Int,
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     _storage = Storage(count: count, alignment: alignment)
     _writerSize = _storage.capacity
@@ -191,7 +191,7 @@ public struct ByteBuffer {
   public init(
     assumingMemoryBound memory: UnsafeMutableRawPointer,
     capacity: Int,
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     _storage = Storage(memory: memory, capacity: capacity, unowned: true)
     _writerSize = capacity
@@ -206,7 +206,7 @@ public struct ByteBuffer {
   init(
     memory: UnsafeMutableRawPointer,
     count: Int,
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     _storage = Storage(count: count, alignment: alignment)
     _storage.copy(from: memory, count: count)
@@ -224,7 +224,7 @@ public struct ByteBuffer {
     memory: UnsafeMutableRawPointer,
     count: Int,
     removing removeBytes: Int,
-    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = false)
+    allowReadingUnalignedBuffers allowUnalignedBuffers: Bool = true)
   {
     _storage = Storage(count: count, alignment: alignment)
     _storage.copy(from: memory, count: count)
