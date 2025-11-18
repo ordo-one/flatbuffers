@@ -366,6 +366,18 @@ public struct FlatBufferBuilder {
   ///   - type: Type of the object to be written
   @inline(__always)
   @usableFromInline
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating internal func preAlign<T: Scalar>(len: Int, type: T.Type) {
     preAlign(len: len, alignment: MemoryLayout<T>.size)
   }
@@ -448,6 +460,18 @@ public struct FlatBufferBuilder {
   /// - Parameter elements: elements to be written into the buffer
   /// - returns: ``Offset`` of the vector
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func createVector<T: Scalar>(_ elements: [T]) -> Offset {
     createVector(elements, size: elements.count)
   }
@@ -466,6 +490,18 @@ public struct FlatBufferBuilder {
   /// - Parameter size: Count of elements
   /// - returns: ``Offset`` of the vector
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func createVector<T: Scalar>(
     _ elements: [T],
     size: Int) -> Offset
