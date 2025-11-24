@@ -43,7 +43,7 @@ public struct FlatBufferBuilder {
   /// A check to see if finish(::) was ever called to retreive data object
   private var finished = false
   /// A check to see if the buffer should serialize Default values
-  private var serializeDefaults: Bool
+  @usableFromInline var serializeDefaults: Bool
 
   /// Current alignment for the buffer
   var _minAlignment: Int = 0 {
@@ -357,8 +357,8 @@ public struct FlatBufferBuilder {
   /// - Parameters:
   ///   - len: Length of the object
   ///   - type: Type of the object to be written
+  @inlinable
   @inline(__always)
-  @usableFromInline
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
   @_specialize(where T == Int8)
@@ -452,6 +452,7 @@ public struct FlatBufferBuilder {
   ///
   /// - Parameter elements: elements to be written into the buffer
   /// - returns: ``Offset`` of the vector
+  @inlinable
   @inline(__always)
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
@@ -482,6 +483,7 @@ public struct FlatBufferBuilder {
   /// - Parameter elements: Elements to be written into the buffer
   /// - Parameter size: Count of elements
   /// - returns: ``Offset`` of the vector
+  @inlinable
   @inline(__always)
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
@@ -816,6 +818,7 @@ public struct FlatBufferBuilder {
   ///   - element: Element to insert
   ///   - def: Default value for that element
   ///   - position: The predefined position of the element
+  @inlinable
   @inline(__always)
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
@@ -847,6 +850,7 @@ public struct FlatBufferBuilder {
   /// - Parameters:
   ///   - element: Optional element of type scalar
   ///   - position: The predefined position of the element
+  @inlinable
   @inline(__always)
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
@@ -871,6 +875,7 @@ public struct FlatBufferBuilder {
   ///
   /// - Parameter element: Element to insert
   /// - returns: position of the Element
+  @inlinable
   @inline(__always)
   @discardableResult
   @_specialize(where T == Bool)

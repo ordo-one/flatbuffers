@@ -29,9 +29,9 @@ public struct ByteBuffer {
     // This storage doesn't own the memory, therefore, we won't deallocate on deinit.
     private let unowned: Bool
     /// pointer to the start of the buffer object in memory
-    var memory: UnsafeMutableRawPointer
+    @usableFromInline var memory: UnsafeMutableRawPointer
     /// Capacity of UInt8 the buffer can hold
-    var capacity: Int
+    @usableFromInline var capacity: Int
 
     @usableFromInline
     init(count: Int, alignment: Int) {
@@ -99,11 +99,11 @@ public struct ByteBuffer {
   @usableFromInline var _storage: Storage
 
   /// The size of the elements written to the buffer + their paddings
-  private var _writerSize: Int = 0
+  @usableFromInline var _writerSize: Int = 0
   /// Alignment of the current  memory being written to the buffer
   var alignment = 1
   /// Current Index which is being used to write to the buffer, it is written from the end to the start of the buffer
-  var writerIndex: Int { _storage.capacity &- _writerSize }
+  @usableFromInline var writerIndex: Int { _storage.capacity &- _writerSize }
 
   /// Reader is the position of the current Writer Index (capacity - size)
   public var reader: Int { writerIndex }
@@ -244,8 +244,8 @@ public struct ByteBuffer {
 
   /// Adds an array of type Scalar to the buffer memory
   /// - Parameter elements: An array of Scalars
+  @inlinable
   @inline(__always)
-  @usableFromInline
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
   @_specialize(where T == Int8)
@@ -322,8 +322,8 @@ public struct ByteBuffer {
   /// - Parameters:
   ///   - value: Object  that will be written to the buffer
   ///   - len: Offset to subtract from the WriterIndex
+  @inlinable
   @inline(__always)
-  @usableFromInline
   @_specialize(where T == Bool)
   @_specialize(where T == Int)
   @_specialize(where T == Int8)
