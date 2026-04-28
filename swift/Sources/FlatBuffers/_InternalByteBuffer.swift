@@ -115,6 +115,18 @@ struct _InternalByteBuffer {
   /// - Parameter elements: An array of Scalars
   @inline(__always)
   @usableFromInline
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating func push<T: Scalar>(elements: [T]) {
     elements.withUnsafeBytes { ptr in
       ensureSpace(size: ptr.count)
@@ -181,6 +193,18 @@ struct _InternalByteBuffer {
   ///   - len: Offset to subtract from the WriterIndex
   @inline(__always)
   @usableFromInline
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating func push<T: Scalar>(value: T, len: Int) {
     ensureSpace(size: len)
     withUnsafePointer(to: value) {

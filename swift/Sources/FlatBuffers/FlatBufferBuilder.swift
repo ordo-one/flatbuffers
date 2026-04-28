@@ -51,7 +51,10 @@ public struct FlatBufferBuilder {
   var serializeDefaults: Bool
 
   /// Current alignment for the buffer
-  var _minAlignment: Int = 0 {
+  ///
+  /// ONLY FOR FLATBUFFERS INTERNAL USAGE:
+  /// See https://github.com/apple/swift/issues/61455
+  public var _minAlignment: Int = 0 {
     didSet {
       _bb.alignment = _minAlignment
     }
@@ -371,6 +374,18 @@ public struct FlatBufferBuilder {
   ///   - type: Type of the object to be written
   @inline(__always)
   @usableFromInline
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating internal func preAlign<T: Scalar>(len: Int, type: T.Type) {
     preAlign(len: len, alignment: MemoryLayout<T>.size)
   }
@@ -453,6 +468,18 @@ public struct FlatBufferBuilder {
   /// - Parameter elements: elements to be written into the buffer
   /// - returns: ``Offset`` of the vector
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func createVector<T: Scalar>(_ elements: [T]) -> Offset {
     createVector(elements, size: elements.count)
   }
@@ -471,6 +498,18 @@ public struct FlatBufferBuilder {
   /// - Parameter size: Count of elements
   /// - returns: ``Offset`` of the vector
   @inline(__always)
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func createVector<T: Scalar>(
     _ elements: [T],
     size: Int) -> Offset
@@ -797,6 +836,18 @@ public struct FlatBufferBuilder {
   ///   - position: The predefined position of the element
   @inline(__always)
   @inlinable
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func add<T: Scalar>(
     element: T,
     def: T,
@@ -817,6 +868,18 @@ public struct FlatBufferBuilder {
   ///   - position: The predefined position of the element
   @inline(__always)
   @inlinable
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func add<T: Scalar>(element: T?, at position: VOffset) {
     guard let element = element else { return }
     track(offset: push(element: element), at: position)
@@ -831,6 +894,18 @@ public struct FlatBufferBuilder {
   @inline(__always)
   @inlinable
   @discardableResult
+  @_specialize(where T == Bool)
+  @_specialize(where T == Int)
+  @_specialize(where T == Int8)
+  @_specialize(where T == Int16)
+  @_specialize(where T == Int32)
+  @_specialize(where T == Int64)
+  @_specialize(where T == UInt8)
+  @_specialize(where T == UInt16)
+  @_specialize(where T == UInt32)
+  @_specialize(where T == UInt64)
+  @_specialize(where T == Double)
+  @_specialize(where T == Float32)
   mutating public func push<T: Scalar>(element: T) -> UOffset {
     let size = MemoryLayout<T>.size
     preAlign(
