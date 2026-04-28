@@ -100,7 +100,7 @@ const static FlatCOption flatc_options[] = {
      "Disable generation of MIN and MAX enumerated values for scoped enums "
      "and prefixed enums."},
     {"", "swift-implementation-only", "",
-     "Adds a @_implementationOnly to swift imports"},
+     "Adds a internal to swift imports"},
     {"", "gen-includes", "",
      "(deprecated), this is the default behavior. If the original behavior is "
      "required (no include statements) use --no-includes."},

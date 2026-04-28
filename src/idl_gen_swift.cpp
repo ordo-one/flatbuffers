@@ -171,7 +171,7 @@ class SwiftGenerator : public BaseGenerator {
 
     if (parser_.opts.include_dependence_headers || parser_.opts.generate_all) {
       code_.SetValue("IMPLEMENTONLY", parser_.opts.swift_implementation_only
-                                          ? "@_implementationOnly "
+                                          ? "internal "
                                           : "");
       code_ += "#if canImport(Common)";
       code_ += "{{IMPLEMENTONLY}}import Common";
