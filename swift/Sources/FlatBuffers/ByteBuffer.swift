@@ -442,8 +442,8 @@ public struct ByteBuffer: @unchecked Sendable {
   public func duplicate(removing removeBytes: Int = 0) -> ByteBuffer {
     assert(removeBytes >= 0, "Can NOT remove negative bytes")
     assert(
-      removeBytes < capacity,
-      "Can NOT remove more bytes than the ones allocated")
+      removeBytes <= _readerIndex,
+      "Can NOT remove more bytes than the current reader index")
     var duplicate = self
     duplicate._readerIndex = _readerIndex &- removeBytes
     return duplicate
