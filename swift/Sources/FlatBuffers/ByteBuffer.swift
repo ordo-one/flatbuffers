@@ -264,7 +264,7 @@ public struct ByteBuffer {
   /// Current size of the buffer
   public var size: UOffset { UOffset(_readerIndex) }
   /// Current capacity for the buffer
-  public let capacity: Int
+  public private(set) var capacity: Int
 
   /// Constructor that creates a Flatbuffer object from an InternalByteBuffer
   /// - Parameter
@@ -346,6 +346,33 @@ public struct ByteBuffer {
     _backing = .borrowed(memory)
     _readerIndex = capacity
     self.capacity = capacity
+  }
+
+  /// Points a buffer at other borrowed memory, as `init(assumingMemoryBound:capacity:)` would,
+  /// without allocating. Borrowed memory is a bare pointer, so nothing is shared with other copies
+  /// of the buffer and they keep the memory they had; a retained buffer releases its storage and
+  /// borrows the new memory.
+  ///
+  /// - Parameters:
+  ///   - assumingMemoryBound: The unsafe memory region, owned by the caller for as long as the
+  ///     buffer or any copy of it is read
+  ///   - capacity: The size of the given memory region
+  /// - Returns: `true` when the buffer was already borrowed, `false` when it released a storage
+  @discardableResult
+  @inline(__always)
+  public mutating func rebind(
+    assumingMemoryBound memory: UnsafeMutableRawPointer,
+    capacity: Int) -> Bool
+  {
+    let wasBorrowed: Bool
+    switch _backing {
+    case .borrowed: wasBorrowed = true
+    case .retained: wasBorrowed = false
+    }
+    _backing = .borrowed(memory)
+    _readerIndex = capacity
+    self.capacity = capacity
+    return wasBorrowed
   }
 
   /// Write stores an object into the buffer directly or indirectly.

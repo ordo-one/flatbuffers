@@ -68,6 +68,67 @@ final class ByteBufferTests: XCTestCase {
     XCTAssertEqual(duplicate.capacity, count)
   }
 
+  func testRebindOfBorrowedBufferAllocatesNothing() {
+    let first = UnsafeMutableRawPointer.allocate(byteCount: 16, alignment: 8)
+    let second = UnsafeMutableRawPointer.allocate(byteCount: 24, alignment: 8)
+    defer {
+      first.deallocate()
+      second.deallocate()
+    }
+    first.storeBytes(of: UInt32(0xAAAA_0001), toByteOffset: 4, as: UInt32.self)
+    second.storeBytes(of: UInt32(0xBBBB_0002), toByteOffset: 4, as: UInt32.self)
+    var byteBuffer = ByteBuffer(assumingMemoryBound: first, capacity: 16)
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xAAAA_0001)
+    XCTAssertTrue(byteBuffer.rebind(assumingMemoryBound: second, capacity: 24))
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xBBBB_0002)
+    XCTAssertEqual(byteBuffer.capacity, 24)
+    XCTAssertEqual(byteBuffer.size, 24)
+    XCTAssertEqual(byteBuffer.reader, 0)
+    byteBuffer.withUnsafeBytes { memory in
+      XCTAssertEqual(memory.baseAddress!, UnsafeRawPointer(second))
+      XCTAssertEqual(memory.count, 24)
+    }
+  }
+
+  func testRebindLeavesTheOtherCopyIntact() {
+    let first = UnsafeMutableRawPointer.allocate(byteCount: 16, alignment: 8)
+    let second = UnsafeMutableRawPointer.allocate(byteCount: 8, alignment: 8)
+    defer {
+      first.deallocate()
+      second.deallocate()
+    }
+    first.storeBytes(of: UInt32(0xAAAA_0001), toByteOffset: 4, as: UInt32.self)
+    second.storeBytes(of: UInt32(0xBBBB_0002), toByteOffset: 4, as: UInt32.self)
+    var byteBuffer = ByteBuffer(assumingMemoryBound: first, capacity: 16)
+    let table = Table(bb: byteBuffer, position: 0)
+    XCTAssertTrue(byteBuffer.rebind(assumingMemoryBound: second, capacity: 8))
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xBBBB_0002)
+    XCTAssertEqual(byteBuffer.capacity, 8)
+    XCTAssertEqual(table.bb.read(def: UInt32.self, position: 4), 0xAAAA_0001)
+    XCTAssertEqual(table.bb.capacity, 16)
+    table.bb.withUnsafeBytes { memory in
+      XCTAssertEqual(memory.baseAddress!, UnsafeRawPointer(first))
+    }
+  }
+
+  func testRebindOfOwnedBufferBorrowsTheNewMemory() {
+    let source = UnsafeMutableRawPointer.allocate(byteCount: 16, alignment: 8)
+    let borrowed = UnsafeMutableRawPointer.allocate(byteCount: 16, alignment: 8)
+    defer {
+      source.deallocate()
+      borrowed.deallocate()
+    }
+    source.storeBytes(of: UInt32(0xAAAA_0001), toByteOffset: 4, as: UInt32.self)
+    borrowed.storeBytes(of: UInt32(0xBBBB_0002), toByteOffset: 4, as: UInt32.self)
+    var byteBuffer = ByteBuffer(copyingMemoryBound: source, capacity: 16)
+    XCTAssertFalse(byteBuffer.rebind(assumingMemoryBound: borrowed, capacity: 16))
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xBBBB_0002)
+    borrowed.storeBytes(of: UInt32(0xCCCC_0003), toByteOffset: 4, as: UInt32.self)
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xCCCC_0003)
+    XCTAssertTrue(byteBuffer.rebind(assumingMemoryBound: source, capacity: 16))
+    XCTAssertEqual(byteBuffer.read(def: UInt32.self, position: 4), 0xAAAA_0001)
+  }
+
   func testSameDataPtr() {
     let count = 100
     let ptr = Data(repeating: 0, count: count)
