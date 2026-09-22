@@ -186,12 +186,14 @@ jobs:
             echo '| --- | --- | --- |'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets')
+          # the REST payload carries the numeric asset id; `gh release view` returns the
+          # browser download url and a graphql node id, neither of which SwiftPM can use
+          assets=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets')
 
           for zip in release-artifacts/*.artifactbundle.zip; do
             name=$(basename "$zip")
             checksum=$(sha256sum "$zip" | cut -d' ' -f1)
-            id=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .url | split("/") | last' <<< "$assets")
+            id=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .id' <<< "$assets")
 
             # SwiftPM infers the archive type from the extension, so the asset api url needs `.zip`
             url="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}.zip"
