@@ -1,0 +1,15 @@
+{
+    "schemaVersion": "1.1",
+    "artifacts": {
+        "flatc": {
+            "type": "executable",
+            "version": "__VERSION__",
+            "variants": [
+                {
+                    "path": "flatc/bin/__PLATFORM__-flatc",
+                    "supportedTriples": ["__TRIPLE__"]
+                }
+            ]
+        }
+    }
+}
