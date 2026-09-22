@@ -16,6 +16,7 @@ jobs:
       - name: Semantic Release Config
         run: |
           echo "
+          repositoryUrl: 'https://github.com/ordo-one/flatbuffers.git'
           branches:
             - master
             - name: 'next'
