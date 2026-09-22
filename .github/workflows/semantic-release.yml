@@ -8,6 +8,8 @@ on:
 jobs:
   semantic-release:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.semantic.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -48,6 +50,8 @@ jobs:
                 - scope: 'major'
                   release: major
             - - '@semantic-release/release-notes-generator'
+            - - '@semantic-release/exec'
+              -  successCmd: '{ echo version=\${nextRelease.version}; } >> \$GITHUB_OUTPUT'
             - - '@semantic-release/github'
               - successComment: false
                 failTitle: false" > .releaserc.yml
@@ -59,9 +63,138 @@ jobs:
 
       - name: Install semantic-release
         run: |
-          npm install semantic-release@v24 conventional-changelog-conventionalcommits@v8 -D
+          npm install semantic-release@v24 conventional-changelog-conventionalcommits@v8 @semantic-release/exec@v6 -D
           npm list
       - name: Release
+        id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+  # the bundle jobs live here, not in their own tag-triggered workflow: a tag pushed with
+  # GITHUB_TOKEN raises no event, so `on: push: tags:` would never fire for a release we cut
+  macos:
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.version != ''
+    runs-on: macos-latest
+    name: macOS (arm64)
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.semantic-release.outputs.version }}
+
+      - name: cmake
+        run: cmake -G "Xcode" -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_STRICT_MODE=ON .
+
+      - name: Build
+        run: xcodebuild -toolchain clang -configuration Release -target flatc
+
+      - name: Check architecture
+        run: file Release/flatc | grep "Mach-O 64-bit executable arm64"
+
+      - name: Version
+        run: |
+          chmod +x Release/flatc
+          Release/flatc --version
+
+      - name: Bundle
+        env:
+          BINARY: Release/flatc
+          PLATFORM: darwin-arm64
+          TRIPLE: arm64-apple-macosx
+          VERSION: ${{ needs.semantic-release.outputs.version }}
+        run: .github/bundle.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bundle-darwin-arm64
+          path: '*.artifactbundle.zip'
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+
+  linux:
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.version != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+            triple: x86_64-unknown-linux-gnu
+#          - runner: ubuntu-24.04-arm
+#            platform: linux-aarch64
+#            triple: aarch64-unknown-linux-gnu
+    runs-on: ${{ matrix.runner }}
+    name: Linux (${{ matrix.platform }})
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.semantic-release.outputs.version }}
+
+      - name: cmake
+        run: CXX=clang++-18 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_STRICT_MODE=ON -DFLATBUFFERS_STATIC_FLATC=ON .
+
+      - name: Build
+        run: make -j flatc
+
+      - name: Version
+        run: |
+          chmod +x flatc
+          ./flatc --version
+
+      - name: Bundle
+        env:
+          BINARY: flatc
+          PLATFORM: ${{ matrix.platform }}
+          TRIPLE: ${{ matrix.triple }}
+          VERSION: ${{ needs.semantic-release.outputs.version }}
+        run: .github/bundle.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bundle-${{ matrix.platform }}
+          path: '*.artifactbundle.zip'
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+
+  upload:
+    needs: [semantic-release, macos, linux]
+    runs-on: ubuntu-24.04
+    name: Attach bundles
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: v${{ needs.semantic-release.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: release-artifacts
+          pattern: bundle-*
+          merge-multiple: true
+
+      - name: Upload to release
+        run: gh release upload "$TAG" release-artifacts/*.artifactbundle.zip --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Report urls and checksums
+        run: |
+          {
+            echo "## Scripts/bundles/Package.swift"
+            echo
+            echo '| platform | url | checksum |'
+            echo '| --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets')
+
+          for zip in release-artifacts/*.artifactbundle.zip; do
+            name=$(basename "$zip")
+            checksum=$(sha256sum "$zip" | cut -d' ' -f1)
+            id=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .url | split("/") | last' <<< "$assets")
+
+            # SwiftPM infers the archive type from the extension, so the asset api url needs `.zip`
+            url="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}.zip"
+
+            echo "| ${name%%.artifactbundle.zip} | \`$url\` | \`$checksum\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
