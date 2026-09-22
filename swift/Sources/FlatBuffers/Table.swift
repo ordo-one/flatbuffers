@@ -50,6 +50,7 @@ public struct Table {
   /// - Parameter o: current offset
   /// - Returns: offset of field within buffer
   @inlinable
+  @inline(__always)
   public func offset(_ o: Int32) -> Int32 {
     let vtable = position &- bb.read(def: Int32.self, position: Int(position))
     return o
@@ -66,6 +67,7 @@ public struct Table {
   /// - Parameter o: current offset
   /// - Returns: offset of field within buffer
   @inlinable
+  @inline(__always)
   public func indirect(_ o: Int32) -> Int32 {
     o &+ bb.read(def: Int32.self, position: Int(o))
   }
@@ -87,11 +89,13 @@ public struct Table {
   ///   - o: Offset of the Element
   #if compiler(>=6.0)
   @inlinable
+  @inline(__always)
   public func readBuffer<T: BitwiseCopyable>(of type: T.Type, at o: Int32) -> T {
     bb.read(def: T.self, position: Int(o &+ position))
   }
   #else
   @inlinable
+  @inline(__always)
   public func readBuffer<T>(of type: T.Type, at o: Int32) -> T {
     bb.read(def: T.self, position: Int(o &+ position))
   }
@@ -176,6 +180,7 @@ public struct Table {
   /// - Parameter o: start offset of the vector
   /// - returns: Count of elements
   @inlinable
+  @inline(__always)
   public func vector(count o: Int32) -> Int32 {
     var o = o
     o &+= position
@@ -187,6 +192,7 @@ public struct Table {
   /// - Parameter o:start offset of the vector
   /// - returns: the start index of the vector
   @inlinable
+  @inline(__always)
   public func vector(at o: Int32) -> Int32 {
     var o = o
     o &+= position
@@ -199,6 +205,7 @@ public struct Table {
   ///   - fbb: ByteBuffer
   /// - Returns: table offset
   @inlinable
+  @inline(__always)
   static public func indirect(_ o: Int32, _ fbb: ByteBuffer) -> Int32 {
     o &+ fbb.read(def: Int32.self, position: Int(o))
   }
