@@ -37,6 +37,37 @@ final class ByteBufferTests: XCTestCase {
     }
   }
 
+  func testDuplicateOfBorrowedMemory() {
+    let count = 16
+    let ptr = UnsafeMutableRawPointer.allocate(byteCount: count, alignment: 8)
+    defer { ptr.deallocate() }
+    ptr.storeBytes(of: UInt32(0xCAFE_F00D), toByteOffset: 4, as: UInt32.self)
+    let byteBuffer = ByteBuffer(assumingMemoryBound: ptr, capacity: count)
+    let duplicate = byteBuffer.duplicate()
+    duplicate.withUnsafeBytes { memory in
+      XCTAssertEqual(memory.baseAddress!, UnsafeRawPointer(ptr))
+      XCTAssertEqual(memory.count, count)
+    }
+    XCTAssertEqual(duplicate.read(def: UInt32.self, position: 4), 0xCAFE_F00D)
+    XCTAssertEqual(duplicate.reader, byteBuffer.reader)
+    XCTAssertEqual(byteBuffer.duplicate(removing: 4).reader, 4)
+  }
+
+  func testDuplicateOfOwnedMemoryOutlivesOriginal() {
+    let count = 16
+    let source = UnsafeMutableRawPointer.allocate(byteCount: count, alignment: 8)
+    defer { source.deallocate() }
+    source.storeBytes(of: UInt32(0xDEAD_BEEF), toByteOffset: 8, as: UInt32.self)
+    let duplicate: ByteBuffer = {
+      let owned = ByteBuffer(copyingMemoryBound: source, capacity: count)
+      return owned.duplicate(removing: 4)
+    }()
+    source.storeBytes(of: UInt32(0), toByteOffset: 8, as: UInt32.self)
+    XCTAssertEqual(duplicate.read(def: UInt32.self, position: 8), 0xDEAD_BEEF)
+    XCTAssertEqual(duplicate.reader, 4)
+    XCTAssertEqual(duplicate.capacity, count)
+  }
+
   func testSameDataPtr() {
     let count = 100
     let ptr = Data(repeating: 0, count: count)
