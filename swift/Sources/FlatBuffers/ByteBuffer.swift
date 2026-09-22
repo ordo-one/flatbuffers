@@ -100,10 +100,10 @@ public struct ByteBuffer {
     /// This storage doesn't own the memory, therefore, we won't deallocate on deinit.
     private let isOwned: Bool
     /// Capacity of UInt8 the buffer can hold
-    private let capacity: Int
+    private var capacity: Int
     /// Retained blob of data that requires the storage to retain a pointer to.
     @usableFromInline
-    let retainedBlob: Blob
+    var retainedBlob: Blob
 
     @usableFromInline
     init(count: Int) {
@@ -130,6 +130,21 @@ public struct ByteBuffer {
       isOwned = false
     }
     #endif
+
+    /// Points a non-owning storage over a raw pointer at other memory, in place. Owned memory
+    /// would leak and a retained `Data`, array or `_InternalByteBuffer` is what keeps its bytes
+    /// alive, so those storages refuse and the caller allocates a new one instead.
+    @usableFromInline
+    func rebind(pointer: UnsafeMutableRawPointer, capacity count: Int) -> Bool {
+      guard !isOwned else { return false }
+      switch retainedBlob {
+      case .pointer: break
+      default: return false
+      }
+      retainedBlob = .pointer(pointer)
+      capacity = count
+      return true
+    }
 
     deinit {
       guard isOwned else { return }
@@ -255,7 +270,7 @@ public struct ByteBuffer {
   /// Current size of the buffer
   public var size: UOffset { UOffset(_readerIndex) }
   /// Current capacity for the buffer
-  public let capacity: Int
+  public private(set) var capacity: Int
 
   /// Constructor that creates a Flatbuffer object from an InternalByteBuffer
   /// - Parameter
@@ -338,6 +353,36 @@ public struct ByteBuffer {
       capacity: capacity)
     _readerIndex = capacity
     self.capacity = capacity
+  }
+
+  /// Points a buffer created with `init(assumingMemoryBound:capacity:)` at other memory.
+  ///
+  /// When nothing else references the buffer's storage the pointer is replaced in place and
+  /// nothing is allocated, so a reader that decodes many rows out of memory it owns keeps one
+  /// buffer and rebinds it per row. When another copy shares the storage (a `Table` read from
+  /// this buffer, for instance) the buffer gets a fresh non-owning storage and the other copies
+  /// keep the memory they had, so they never observe the change. An owned buffer releases its
+  /// memory and borrows the new one the same way.
+  ///
+  /// - Parameters:
+  ///   - assumingMemoryBound: The unsafe memory region, owned by the caller for as long as the
+  ///     buffer or any copy of it is read
+  ///   - capacity: The size of the given memory region
+  /// - Returns: `true` when the storage was reused, `false` when a new one was allocated
+  @discardableResult
+  @inline(__always)
+  public mutating func rebind(
+    assumingMemoryBound memory: UnsafeMutableRawPointer,
+    capacity: Int) -> Bool
+  {
+    let reused = isKnownUniquelyReferenced(&_storage)
+      && _storage.rebind(pointer: memory, capacity: capacity)
+    if !reused {
+      _storage = Storage(blob: .pointer(memory), capacity: capacity)
+    }
+    _readerIndex = capacity
+    self.capacity = capacity
+    return reused
   }
 
   /// Creates a copy of the existing flatbuffer, by copying it to a different memory.
