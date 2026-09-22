@@ -25,12 +25,10 @@ public enum FlatBuffersUtils {
     bb.read(def: Int32.self, position: bb.reader)
   }
 
-  /// Removes the prefix by duplicating the Flatbuffer this call is expensive since its
-  /// creates a new buffer use `readPrefixedSizeCheckedRoot` instead
-  /// unless a completely new buffer is required
+  /// Removes the prefix by duplicating the Flatbuffer; the duplicate shares the
+  /// original's memory, so prefer `readPrefixedSizeCheckedRoot` unless a separate
+  /// buffer value is required
   /// - Parameter bb: Flatbuffer object
-  ///
-  ///
   public static func removeSizePrefix(bb: ByteBuffer) -> ByteBuffer {
     bb.duplicate(removing: MemoryLayout<Int32>.size)
   }

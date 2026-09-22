@@ -42,6 +42,39 @@ struct ByteBufferTests {
   }
 
   @Test
+  func testDuplicateOfBorrowedMemory() {
+    let count = 16
+    let ptr = UnsafeMutableRawPointer.allocate(byteCount: count, alignment: 8)
+    defer { ptr.deallocate() }
+    ptr.storeBytes(of: UInt32(0xCAFE_F00D), toByteOffset: 4, as: UInt32.self)
+    let byteBuffer = ByteBuffer(assumingMemoryBound: ptr, capacity: count)
+    let duplicate = byteBuffer.duplicate()
+    duplicate.withUnsafeBytes { memory in
+      #expect(memory.baseAddress! == UnsafeRawPointer(ptr))
+      #expect(memory.count == count)
+    }
+    #expect(duplicate.read(def: UInt32.self, position: 4) == 0xCAFE_F00D)
+    #expect(duplicate.reader == byteBuffer.reader)
+    #expect(byteBuffer.duplicate(removing: 4).reader == 4)
+  }
+
+  @Test
+  func testDuplicateOfOwnedMemoryOutlivesOriginal() {
+    let count = 16
+    let source = UnsafeMutableRawPointer.allocate(byteCount: count, alignment: 8)
+    defer { source.deallocate() }
+    source.storeBytes(of: UInt32(0xDEAD_BEEF), toByteOffset: 8, as: UInt32.self)
+    let duplicate: ByteBuffer = {
+      let owned = ByteBuffer(copyingMemoryBound: source, capacity: count)
+      return owned.duplicate(removing: 4)
+    }()
+    source.storeBytes(of: UInt32(0), toByteOffset: 8, as: UInt32.self)
+    #expect(duplicate.read(def: UInt32.self, position: 8) == 0xDEAD_BEEF)
+    #expect(duplicate.reader == 4)
+    #expect(duplicate.capacity == count)
+  }
+
+  @Test
   func testSameDataPtr() {
     let count = 100
     let ptr = Data(repeating: 0, count: count)

@@ -212,7 +212,16 @@ public struct ByteBuffer: @unchecked Sendable {
     }
   }
 
-  @usableFromInline var _storage: Storage
+  /// Owned or retained memory sits behind a `Storage` object; memory the buffer only borrows
+  /// (`init(assumingMemoryBound:capacity:)`) is kept as the bare pointer, so a read-only view over
+  /// bytes owned elsewhere costs neither an allocation nor reference counting when it is copied.
+  @usableFromInline
+  @frozen enum Backing {
+    case retained(Storage)
+    case borrowed(UnsafeMutableRawPointer)
+  }
+
+  @usableFromInline var _backing: Backing
 
   /// The size of the elements written to the buffer + their paddings
   private var _readerIndex: Int = 0
@@ -228,9 +237,9 @@ public struct ByteBuffer: @unchecked Sendable {
   ///   - bytes: Array of UInt8
   @inline(__always)
   init(byteBuffer: _InternalByteBuffer) {
-    _storage = Storage(
+    _backing = .retained(Storage(
       blob: .byteBuffer(byteBuffer),
-      capacity: byteBuffer.capacity)
+      capacity: byteBuffer.capacity))
     _readerIndex = Int(byteBuffer.size)
     capacity = byteBuffer.capacity
   }
@@ -246,8 +255,9 @@ public struct ByteBuffer: @unchecked Sendable {
     copyingMemoryBound memory: UnsafeRawPointer,
     capacity: Int)
   {
-    _storage = Storage(count: capacity)
-    _storage.copy(from: memory, count: capacity)
+    let storage = Storage(count: capacity)
+    storage.copy(from: memory, count: capacity)
+    _backing = .retained(storage)
     _readerIndex = capacity
     self.capacity = capacity
   }
@@ -257,7 +267,7 @@ public struct ByteBuffer: @unchecked Sendable {
   ///   - bytes: Array of UInt8
   @inline(__always)
   public init(bytes: [UInt8]) {
-    _storage = Storage(blob: .array(bytes), capacity: bytes.count)
+    _backing = .retained(Storage(blob: .array(bytes), capacity: bytes.count))
     _readerIndex = bytes.count
     capacity = bytes.count
   }
@@ -268,7 +278,7 @@ public struct ByteBuffer: @unchecked Sendable {
   ///   - data: Swift data Object
   @inline(__always)
   public init(data: Data) {
-    _storage = Storage(blob: .data(data), capacity: data.count)
+    _backing = .retained(Storage(blob: .data(data), capacity: data.count))
     _readerIndex = data.count
     capacity = data.count
   }
@@ -282,7 +292,7 @@ public struct ByteBuffer: @unchecked Sendable {
     contiguousBytes: Bytes,
     count: Int)
   {
-    _storage = Storage(blob: .bytes(contiguousBytes), capacity: count)
+    _backing = .retained(Storage(blob: .bytes(contiguousBytes), capacity: count))
     _readerIndex = count
     capacity = count
   }
@@ -299,27 +309,9 @@ public struct ByteBuffer: @unchecked Sendable {
     assumingMemoryBound memory: UnsafeMutableRawPointer,
     capacity: Int)
   {
-    _storage = Storage(
-      blob: .pointer(memory),
-      capacity: capacity)
+    _backing = .borrowed(memory)
     _readerIndex = capacity
     self.capacity = capacity
-  }
-
-  /// Creates a copy of the existing flatbuffer, by copying it to a different memory.
-  /// - Parameters:
-  ///   - memory: Current memory of the buffer
-  ///   - count: count of bytes
-  ///   - removeBytes: Removes a number of bytes from the current size
-  @inline(__always)
-  init(
-    blob: borrowing Storage.Blob,
-    count: Int,
-    removing removeBytes: Int)
-  {
-    _storage = Storage(blob: blob, capacity: count)
-    _readerIndex = removeBytes
-    capacity = count
   }
 
   /// Write stores an object into the buffer directly or indirectly.
@@ -339,7 +331,7 @@ public struct ByteBuffer: @unchecked Sendable {
     assert(index < capacity, "Write index is out of writing bound")
     assert(index >= 0, "Writer index should be above zero")
     _ = withUnsafePointer(to: value) { ptr in
-      _storage.withUnsafeRawPointer {
+      withUnsafeMutableRawPointer {
         memcpy(
           $0.advanced(by: index),
           ptr,
@@ -355,7 +347,7 @@ public struct ByteBuffer: @unchecked Sendable {
   @inline(__always)
   @inlinable
   public func read<T: BitwiseCopyable>(def: T.Type, position: Int) -> T {
-    _storage.readWithUnsafeRawPointer(position: position) {
+    readWithUnsafeRawPointer(position: position) {
       $0.bindMemory(to: T.self, capacity: 1)
         .pointee
     }
@@ -374,7 +366,7 @@ public struct ByteBuffer: @unchecked Sendable {
       index + count <= capacity,
       "Reading out of bounds is illegal")
 
-    return _storage.readWithUnsafeRawPointer(position: index) {
+    return readWithUnsafeRawPointer(position: index) {
       let buf = UnsafeBufferPointer(
         start: $0.bindMemory(to: T.self, capacity: count),
         count: count)
@@ -396,7 +388,7 @@ public struct ByteBuffer: @unchecked Sendable {
     assert(
       index + count <= capacity,
       "Reading out of bounds is illegal")
-    return try _storage.readWithUnsafeRawPointer(position: index) {
+    return try readWithUnsafeRawPointer(position: index) {
       try body(UnsafeRawBufferPointer(start: $0, count: count))
     }
   }
@@ -416,7 +408,7 @@ public struct ByteBuffer: @unchecked Sendable {
     assert(
       index + count <= capacity,
       "Reading out of bounds is illegal")
-    return _storage.readWithUnsafeRawPointer(position: index) {
+    return readWithUnsafeRawPointer(position: index) {
       let buf = UnsafeBufferPointer(
         start: $0.bindMemory(to: UInt8.self, capacity: count),
         count: count)
@@ -438,7 +430,7 @@ public struct ByteBuffer: @unchecked Sendable {
     assert(
       index + count <= capacity,
       "Reading out of bounds is illegal")
-    return _storage.readWithUnsafeRawPointer(position: index) {
+    return readWithUnsafeRawPointer(position: index) {
       String(cString: $0.bindMemory(to: UInt8.self, capacity: count))
     }
   }
@@ -450,12 +442,11 @@ public struct ByteBuffer: @unchecked Sendable {
   public func duplicate(removing removeBytes: Int = 0) -> ByteBuffer {
     assert(removeBytes >= 0, "Can NOT remove negative bytes")
     assert(
-      removeBytes < capacity,
-      "Can NOT remove more bytes than the ones allocated")
-    return ByteBuffer(
-      blob: _storage.retainedBlob,
-      count: capacity,
-      removing: _readerIndex &- removeBytes)
+      removeBytes <= _readerIndex,
+      "Can NOT remove more bytes than the current reader index")
+    var duplicate = self
+    duplicate._readerIndex = _readerIndex &- removeBytes
+    return duplicate
   }
 
   /// SkipPrefix Skips the first 4 bytes in case one of the following
@@ -475,7 +466,12 @@ public struct ByteBuffer: @unchecked Sendable {
     body: (UnsafeRawBufferPointer) throws
       -> T) rethrows -> T
   {
-    try _storage.withUnsafeBytes(body)
+    switch _backing {
+    case .retained(let storage):
+      return try storage.withUnsafeBytes(body)
+    case .borrowed(let memory):
+      return try body(UnsafeRawBufferPointer(start: memory, count: capacity))
+    }
   }
 
   @discardableResult
@@ -484,23 +480,37 @@ public struct ByteBuffer: @unchecked Sendable {
     body: (UnsafeMutableRawPointer) throws
       -> T) rethrows -> T
   {
-    try _storage.withUnsafeRawPointer(body)
+    switch _backing {
+    case .retained(let storage):
+      return try storage.withUnsafeRawPointer(body)
+    case .borrowed(let memory):
+      return try body(memory)
+    }
   }
 
   @discardableResult
   @inline(__always)
+  @inlinable
   func readWithUnsafeRawPointer<T>(
     position: Int,
     _ body: (UnsafeRawPointer) throws -> T) rethrows -> T
   {
-    try _storage.readWithUnsafeRawPointer(position: position, body)
+    switch _backing {
+    case .retained(let storage):
+      return try storage.readWithUnsafeRawPointer(position: position, body)
+    case .borrowed(let memory):
+      return try body(UnsafeRawPointer(memory.advanced(by: position)))
+    }
   }
 }
 
 extension ByteBuffer: CustomDebugStringConvertible {
 
   public var debugDescription: String {
-    let blobDescription = _storage.retainedBlob.description
+    let blobDescription: String = switch _backing {
+    case .retained(let storage): storage.retainedBlob.description
+    case .borrowed(let memory): "borrowed pointer: \(memory)"
+    }
     return """
     buffer located at: \(blobDescription), 
     with capacity of \(capacity),
