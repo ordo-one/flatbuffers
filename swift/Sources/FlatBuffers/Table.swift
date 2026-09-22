@@ -49,6 +49,7 @@ public struct Table {
   /// the vtable
   /// - Parameter o: current offset
   /// - Returns: offset of field within buffer
+  @inlinable
   public func offset(_ o: Int32) -> Int32 {
     let vtable = position &- bb.read(def: Int32.self, position: Int(position))
     return o
@@ -64,12 +65,14 @@ public struct Table {
   /// (applicable only for object arrays)
   /// - Parameter o: current offset
   /// - Returns: offset of field within buffer
+  @inlinable
   public func indirect(_ o: Int32) -> Int32 {
     o &+ bb.read(def: Int32.self, position: Int(o))
   }
 
   /// String reads from the buffer with respect to position of the current table.
   /// - Parameter offset: Offset of the string
+  @inlinable
   public func string(at offset: Int32) -> String? {
     var offset = offset &+ position
     offset &+= bb.read(def: Int32.self, position: Int(offset))
@@ -83,10 +86,12 @@ public struct Table {
   ///   - type: Type of Element that needs to be read from the buffer
   ///   - o: Offset of the Element
   #if compiler(>=6.0)
+  @inlinable
   public func readBuffer<T: BitwiseCopyable>(of type: T.Type, at o: Int32) -> T {
     bb.read(def: T.self, position: Int(o &+ position))
   }
   #else
+  @inlinable
   public func readBuffer<T>(of type: T.Type, at o: Int32) -> T {
     bb.read(def: T.self, position: Int(o &+ position))
   }
@@ -96,6 +101,7 @@ public struct Table {
   /// by adding offset to the current position of table
   /// - Parameter o: offset
   /// - Returns: A flatbuffers object
+  @inlinable
   public func union<T: FlatbuffersInitializable>(_ o: Int32) -> T {
     let o = o &+ position
     return directUnion(o)
@@ -104,6 +110,7 @@ public struct Table {
   /// Returns a direct `Union` object at a specific offset
   /// - Parameter o: offset
   /// - Returns: A flatbuffers object
+  @inlinable
   public func directUnion<T: FlatbuffersInitializable>(_ o: Int32) -> T {
     T.init(bb, o: o &+ bb.read(def: Int32.self, position: Int(o)))
   }
@@ -112,6 +119,7 @@ public struct Table {
   /// This should only be used by `Scalars`
   /// - Parameter off: Readable offset
   /// - Returns: Returns a vector of type [T]
+  @inlinable
   public func getVector<T>(at off: Int32) -> [T]? {
     let o = offset(off)
     guard o != 0 else { return nil }
@@ -167,6 +175,7 @@ public struct Table {
   /// Vector count gets the count of Elements within the array
   /// - Parameter o: start offset of the vector
   /// - returns: Count of elements
+  @inlinable
   public func vector(count o: Int32) -> Int32 {
     var o = o
     o &+= position
@@ -177,6 +186,7 @@ public struct Table {
   /// Vector start index in the buffer
   /// - Parameter o:start offset of the vector
   /// - returns: the start index of the vector
+  @inlinable
   public func vector(at o: Int32) -> Int32 {
     var o = o
     o &+= position
@@ -188,6 +198,7 @@ public struct Table {
   ///   - o: position within the buffer
   ///   - fbb: ByteBuffer
   /// - Returns: table offset
+  @inlinable
   static public func indirect(_ o: Int32, _ fbb: ByteBuffer) -> Int32 {
     o &+ fbb.read(def: Int32.self, position: Int(o))
   }
